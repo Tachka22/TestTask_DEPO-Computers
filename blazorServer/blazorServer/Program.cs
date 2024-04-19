@@ -1,4 +1,5 @@
 using blazorServer.Data;
+using blazorServer.Models;
 using blazorServer.Service;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -15,6 +16,7 @@ namespace blazorServer
             builder.Services.AddRazorPages();
             builder.Services.AddServerSideBlazor();
             builder.Services.AddSingleton<WeatherForecastService>();
+            builder.Services.AddDbContext<AppDbContext>();
             builder.Services.AddTransient<EmployeeService>();
             builder.Services.AddTransient<CompanyService>();
             var app = builder.Build();
