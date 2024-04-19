@@ -1,0 +1,63 @@
+﻿@page "/companylist"
+@using blazorServer.Models
+@using blazorServer.Service
+@inject CompanyService companyService
+
+<NavLink class="nav-link" href="addcompany">
+    <button type="button" class="btn btn-primary">Добавить</button>
+</NavLink>
+<h3>Компании</h3>
+@if (ComObj is null)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Наименование
+                </th>
+
+                <th>
+                    ИНН
+                </th>
+
+                <th>
+                    Юридический адрес
+                </th>
+
+                <th>
+                    Фактический адрес
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var com in ComObj)
+            {
+                <tr>
+                    <td>@com.Name</td>
+                    <td>@com.Inn</td>
+                    <td>@com.LegalAddress</td>
+                    <td>@com.ActualAddress</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    List<Company> ComObj;
+    /// <summary>
+    /// Вывод компаний в таблицу.
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task OnInitializedAsync()
+    {
+        ComObj = await Task.Run(() => companyService.GetAllAsync());
+    }
+}
