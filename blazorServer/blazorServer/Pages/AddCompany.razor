@@ -1,0 +1,51 @@
+﻿@page "/addcompany"
+@using blazorServer.Models
+@using blazorServer.Service
+@inject CompanyService companyService
+
+<h3>Добавить компанию</h3>
+
+<hr />
+<form>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="form-group">
+                <label for="Name" class="control-label">Наименование</label>
+                <input for="Name" class="form-control" @bind="@obj.Name" />
+            </div>
+            <div class="form-group">
+                <label for="Inn" class="control-label">ИНН</label>
+                <input for="Inn" class="form-control" @bind="@obj.Inn" />
+            </div>
+            <div class="form-group">
+                <label for="LegalAddress" class="control-label">Юридический адрес</label>
+                <input for="LegalAddress" class="form-control" @bind="@obj.LegalAddress" />
+            </div>
+
+            <div class="form-group">
+                <label for="ActualAddress" class="control-label">Фактический адрес</label>
+                <input for="ActualAddress" class="form-control" @bind="@obj.ActualAddress" />
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <input type="button" class="btn btn-primary" @onclick="@CreateCompany" value="Сохранить" />
+                <input type="button" class="btn btn-primary" @onclick="@Cancel" value="Отмена" />
+            </div>
+        </div>
+    </div>
+</form>
+@code {
+    Company obj = new Company();
+    protected async void CreateCompany()
+    {
+        await companyService.CreateAsync(obj);
+        NavigationManager.NavigateTo("companylist");
+    }
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("companylist");
+    }
+}
