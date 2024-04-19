@@ -1,7 +1,9 @@
 ﻿@page "/companylist"
+@using System.Text
 @using blazorServer.Models
 @using blazorServer.Service
 @inject CompanyService companyService
+@inject IJSRuntime JS
 
 <NavLink class="nav-link" href="addcompany">
     <button type="button" class="btn btn-primary">Добавить</button>
@@ -50,6 +52,20 @@ else
         </tbody>
     </table>
 }
+<script>
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+        const arrayBuffer = await contentStreamReference.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+        URL.revokeObjectURL(url);
+    }
+</script>
+<button @onclick="DownloadFileFromStream" class="btn btn-dark">Экспорт таблицы в СSV</button>
 @code {
     List<Company> ComObj;
     /// <summary>
@@ -59,5 +75,34 @@ else
     protected override async Task OnInitializedAsync()
     {
         ComObj = await Task.Run(() => companyService.GetAllAsync());
+    }
+    /// <summary>
+    /// Эспорт таблицы компаний.
+    /// </summary>
+    /// <returns></returns>
+    private async Task DownloadFileFromStream()
+    {
+        var companies = await Task.Run(() => companyService.GetAllAsync());
+        string header = @"""Наименование"",""Инн"",""Юридический адрес"",""Фактичесикй адрес""";
+        StringBuilder sb = new();
+        sb.AppendLine(header);
+        foreach (var item in companies)
+        {
+            sb.Append(string.Join(",",
+                string.Format(@"""{0}""", item.Name),
+                string.Format(@"""{0}""", item.Inn),
+                string.Format(@"""{0}""", item.LegalAddress),
+                string.Format(@"""{0}""", item.ActualAddress)));
+            sb.Append("\n");
+        }
+        byte[] buffer = Encoding.UTF8.GetBytes(sb.ToString());
+        var result = Encoding.UTF8.GetPreamble().Concat(buffer).ToArray();
+        var fileStream = new MemoryStream(result);
+
+        var fileName = "companies.csv";
+
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
 }
