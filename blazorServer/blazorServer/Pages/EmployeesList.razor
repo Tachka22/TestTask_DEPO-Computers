@@ -1,0 +1,77 @@
+﻿@page "/employeeslist"
+@using blazorServer.Models
+@using blazorServer.Service
+@inject EmployeeService employeesservice
+
+<NavLink class="nav-link" href="addemployee">
+    <button type="button" class="btn btn-primary">Добавить одного сотрудника</button>
+</NavLink>
+
+<h3>Сотрудники</h3>
+
+@if (EmpObj is null)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Фамилия
+                </th>
+
+                <th>
+                    Имя
+                </th>
+
+                <th>
+                    Отчество
+                </th>
+
+                <th>
+                    Дата Рождения
+                </th>
+                <th>
+                    Паспорт серия
+                </th>
+                <th>
+                    Паспорт номер
+                </th>
+                <th>
+                    Компания
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in EmpObj)
+            {
+                <tr>
+                    <td>@emp.LastName</td>
+                    <td>@emp.FirstName</td>
+                    <td>@emp.MiddleName</td>
+                    <td>@emp.DateOfBirth</td>
+                    <td>@emp.PassportSeries</td>
+                    <td>@emp.PassportSeries</td>
+                    <td>@emp.Company.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    List<Employee> EmpObj;
+    /// <summary>
+    /// Вывод сотрудников в таблицу.
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task OnInitializedAsync()
+    {
+        EmpObj = await Task.Run(() => employeesservice.GetAllAsync());
+    }
+}
