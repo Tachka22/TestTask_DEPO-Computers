@@ -21,9 +21,9 @@ namespace blazorServer.Service
         public async Task<bool> CreateAsync(Company company)
         {
             //Если добавляемая компания уже есть в БД то она НЕ будет повторно добавлена.
-            var findCompany = _context.Companies.FirstOrDefaultAsync(x => x.Inn == company.Inn.ToString());
+            //var findCompany = _context.Companies.FirstOrDefaultAsync(x => x.Inn == company.Inn.ToString());
 
-            if (findCompany == null)
+            //if (findCompany == null)
                 await _context.Companies.AddAsync(company);
 
             await _context.SaveChangesAsync();
