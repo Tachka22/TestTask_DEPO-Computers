@@ -1,5 +1,7 @@
 ﻿@page "/companylist"
 @using System.Text
+@using CsvHelper
+@using CsvHelper.Configuration
 @using blazorServer.Models
 @using blazorServer.Service
 @inject CompanyService companyService
@@ -8,6 +10,16 @@
 <NavLink class="nav-link" href="addcompany">
     <button type="button" class="btn btn-primary">Добавить</button>
 </NavLink>
+
+<form @onsubmit="OnSubmit">
+    <span>
+
+        <InputFile OnChange="OnInputFileChange" />
+        <button type="submit" class="btn btn-secondary">Импортировать => @Message</button>
+    </span>
+
+</form>
+
 <h3>Компании</h3>
 @if (ComObj is null)
 {
@@ -105,4 +117,59 @@ else
 
         await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
+
+    string Message = "";
+    IReadOnlyList<IBrowserFile> selectedFiles;
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles();
+        Message = $"{selectedFiles.Count} выбран для импорта";
+        this.StateHasChanged();
+    }
+    private string path = string.Empty;
+
+    private async void OnSubmit()
+    {
+        foreach (var file in selectedFiles)
+        {
+            Stream stream = file.OpenReadStream();
+            path = $"{env.WebRootPath}\\{file.Name}";
+            FileStream fs = File.Create(path);
+            await stream.CopyToAsync(fs);
+            stream.Close();
+            fs.Close();
+        }
+        Message = $"{selectedFiles.Count} Загружен на сервер";
+        this.StateHasChanged();
+
+        var config = new CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
+            {
+
+                HasHeaderRecord = true,
+                HeaderValidated = null,
+                MissingFieldFound = null
+
+            };
+        var companies = new List<Company>();
+        using (var sr = new StreamReader(path))
+        {
+            using var csv = new CsvReader(sr, config);
+            csv.Context.RegisterClassMap<CsvMap>();
+            companies = csv.GetRecords<Company>().ToList();
+        }
+        await companyService.CreateRangeAsync(companies);
+    }
+    sealed class CsvMap : CsvHelper.Configuration.ClassMap<Company>
+    {
+        public CsvMap()
+        {
+            Map(m => m.IdCompany).Ignore();
+            Map(m => m.Name).Index(0).Name("Наименование");
+            Map(m => m.Inn).Index(1).Name("Инн");
+            Map(m => m.LegalAddress).Index(2).Name("Юридический адрес");
+            Map(m => m.ActualAddress).Index(3).Name("Фактичесикй адрес");
+            Map(m => m.Employees).Ignore();
+        }
+    }
+    
 }
