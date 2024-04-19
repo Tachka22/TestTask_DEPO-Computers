@@ -1,0 +1,77 @@
+﻿@page "/addemployee"
+@using blazorServer.Models
+@using blazorServer.Service
+@inject EmployeeService employeeservice
+@inject CompanyService companyService
+
+<h3>Добавить нового сотрудника</h3>
+
+<form>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="form-group">
+                <label for="LastName" class="control-label">Фамилия</label>
+                <input for="LastName" class="form-control" @bind="@employee.LastName" />
+            </div>
+            <div class="form-group">
+                <label for="FirstName" class="control-label">Имя</label>
+                <input for="FirstName" class="form-control" @bind="@employee.FirstName" />
+            </div>
+            <div class="form-group">
+                <label for="MiddleName" class="control-label">Отчество</label>
+                <input for="MiddleName" class="form-control" @bind="@employee.MiddleName" />
+            </div>
+
+            <div class="form-group">
+                <label for="DateOfBirth" class="control-label">Дата Рождения</label>
+                <input for="DateOfBirth" class="form-control" @bind="@employee.DateOfBirth" />
+            </div>
+            <div class="form-group">
+                <label for="PassportSeries" class="control-label">Паспорт серия</label>
+                <input for="PassportSeries" class="form-control" @bind="@employee.PassportSeries" />
+            </div>
+            <div class="form-group">
+                <label for="PassportNumber" class="control-label">Паспорт номер</label>
+                <input for="PassportNumber" class="form-control" @bind="@employee.PassportNumber" />
+            </div>
+        </div>
+    </div>
+    <div>
+        <p>Компания:</p>
+        @foreach (var i in companies)
+        {
+            <div>
+                <label>@i.Name</label>
+                <input type="radio" checked="@(employee.Company == i)"
+                       name="@i.Name" @onchange="@(() => employee.Company = i)" />
+            </div>
+        }
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <input type="button" class="btn btn-primary" @onclick="@CreateEmployee" value="Сохранить" />
+                <input type="button" class="btn btn-primary" @onclick="@Cancel" value="Отмена" />
+            </div>
+        </div>
+    </div>
+</form>
+@code {
+    List<Company> companies = new();
+    Employee employee = new Employee();
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize collection of items get it from some service or context
+        companies = await Task.Run(() => companyService.GetAllAsync());
+    }
+
+    protected async void CreateEmployee()
+    {
+        await employeeservice.CreateAsync(employee);
+        NavigationManager.NavigateTo("employeeslist");
+    }
+    void Cancel()
+    {
+        NavigationManager.NavigateTo("employeeslist");
+    }
+}
