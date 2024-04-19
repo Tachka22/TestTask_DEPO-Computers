@@ -1,5 +1,7 @@
 ﻿@page "/employeeslist"
 @using System.Text
+@using CsvHelper
+@using CsvHelper.Configuration
 @using blazorServer.Models
 @using blazorServer.Service
 @inject EmployeeService employeesservice
@@ -7,7 +9,10 @@
 <NavLink class="nav-link" href="addemployee">
     <button type="button" class="btn btn-primary">Добавить одного сотрудника</button>
 </NavLink>
-
+<form @onsubmit="OnSubmit">
+    <InputFile OnChange="OnInputFileChange" multiple />
+    <button type="submit" class="btn btn-secondary">Импортировать @Message</button>
+</form>
 <h3>Сотрудники</h3>
 
 @if (EmpObj is null)
@@ -117,5 +122,63 @@ else
         using var streamRef = new DotNetStreamReference(stream: fileStream);
 
         await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+
+    string Message = "Файл не выбран";
+    IReadOnlyList<IBrowserFile> selectedFiles;
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFiles = e.GetMultipleFiles();
+        Message = $"{selectedFiles.Count} выбран для импорта";
+        this.StateHasChanged();
+    }
+    private string path = string.Empty;
+    private async void OnSubmit()
+    {
+        foreach (var file in selectedFiles)
+        {
+            Stream stream = file.OpenReadStream();
+            path = $"{env.WebRootPath}\\{file.Name}";
+            FileStream fs = File.Create(path);
+            await stream.CopyToAsync(fs);
+            stream.Close();
+            fs.Close();
+        }
+        Message = $"{selectedFiles.Count} Загружен на сервер";
+        this.StateHasChanged();
+
+        var config = new CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
+            {
+
+                HasHeaderRecord = true,
+                HeaderValidated = null,
+                MissingFieldFound = null
+
+            };
+        var employees = new List<Employee>();
+        using (var sr = new StreamReader(path))
+        {
+            using var csv = new CsvReader(sr, config);
+            csv.Context.RegisterClassMap<CsvMap>();
+            employees = csv.GetRecords<Employee>().ToList();
+        }
+
+
+        await employeesservice.CreateRangeAsync(employees);
+    }
+    sealed class CsvMap : CsvHelper.Configuration.ClassMap<Employee>
+    {
+        public CsvMap()
+        {
+            Map(m => m.IdEmployee).Ignore();
+            Map(m => m.LastName).Index(0).Name("Фамилия");
+            Map(m => m.FirstName).Index(1).Name("Имя");
+            Map(m => m.MiddleName).Index(2).Name("Отчетсво");
+            Map(m => m.DateOfBirth).TypeConverterOption.Format("dd.MM.yyyy hh:mm:ss");
+            Map(m => m.PassportSeries).Index(4).Name("Паспорт серия");
+            Map(m => m.PassportNumber).Index(5).Name("Паспорт номер");
+            Map(m => m.CompanyId).Ignore();
+            Map(m => m.Company.Name).Index(6).Name("Компания");
+        }
     }
 }
