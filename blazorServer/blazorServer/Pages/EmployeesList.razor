@@ -1,4 +1,5 @@
 ﻿@page "/employeeslist"
+@using System.Text
 @using blazorServer.Models
 @using blazorServer.Service
 @inject EmployeeService employeesservice
@@ -64,6 +65,20 @@ else
         </tbody>
     </table>
 }
+<button @onclick="DownloadFileFromStream" class="btn btn-dark">Экспорт таблицы в СSV</button>
+<script>
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+        const arrayBuffer = await contentStreamReference.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+        URL.revokeObjectURL(url);
+    }
+</script>
 @code {
     List<Employee> EmpObj;
     /// <summary>
@@ -73,5 +88,34 @@ else
     protected override async Task OnInitializedAsync()
     {
         EmpObj = await Task.Run(() => employeesservice.GetAllAsync());
+    }
+    private async Task DownloadFileFromStream()
+    {
+        var employees = await employeesservice.GetAllAsync();
+        string header = @"""Фамилия"",""Имя"",""Отчетсво"",""Дата рождения"",""Паспорт серия"",""Паспорт номер"",""Компания""";
+        StringBuilder sb = new();
+        sb.AppendLine(header);
+        foreach (var item in employees)
+        {
+            sb.Append(string.Join(",",
+                string.Format(@"""{0}""", item.LastName),
+                string.Format(@"""{0}""", item.FirstName),
+                string.Format(@"""{0}""", item.MiddleName),
+                string.Format(@"""{0}""", item.DateOfBirth),
+                string.Format(@"""{0}""", item.PassportSeries),
+                string.Format(@"""{0}""", item.PassportNumber),
+                string.Format(@"""{0}""", item.Company.Name)));
+            sb.Append("\n");
+        }
+
+        byte[] buffer = Encoding.UTF8.GetBytes(sb.ToString());
+        var result = Encoding.UTF8.GetPreamble().Concat(buffer).ToArray();
+        var fileStream = new MemoryStream(result);
+
+        var fileName = "employees.csv";
+
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
 }
